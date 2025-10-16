@@ -1,4 +1,3 @@
-// pi_omp.cpp — regla del punto medio con OpenMP + schedule(runtime)
 #include <iostream>
 #include <iomanip>
 #include <omp.h>
@@ -7,14 +6,26 @@ using namespace std;
 
 static double compute_pi(long long N) {
     if (N <= 0) return 0.0;
+
     const double step = 1.0 / static_cast<double>(N);
     double sum = 0.0;
 
-#pragma omp parallel for reduction(+:sum) schedule(runtime)
-    for (long long i = 0; i < N; ++i) {
-        const double x = (i + 0.5) * step;
-        sum += 4.0 / (1.0 + x * x);
+    #pragma omp parallel
+    {
+        double local_sum = 0.0;
+
+        #pragma omp for schedule(runtime)
+        for (long long i = 0; i < N; ++i) {
+            const double x = (i + 0.5) * step;
+            local_sum += 4.0 / (1.0 + x * x);
+        }
+
+        #pragma omp critical
+        {
+            sum += local_sum;
+        }
     }
+
     return step * sum;
 }
 
